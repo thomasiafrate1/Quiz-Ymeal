@@ -126,11 +126,11 @@ useEffect(() => {
         <div className="absolute bottom-0 w-[1000px] h-[330px] bg-green-600 rounded-t-[1000px] -z-00" />
 
         {/* CONTENU */}
-        <div className="flex flex-col items-center text-center relative z-10 px-6">
-          <img src="/titre-ymeal.svg" className="w-[460px] max-w-[90vw] mb-6" />
-          <img src="/logo-ymeal.svg" className="w-[300px] max-w-[70vw] mb-6" />
+        <div className="flex flex-col items-center text-center relative z-10 px-6 ">
+          
+          <img src="/logo-ymeal2.svg" className="w-[300px] max-w-[70vw] mt-50   mb-6" />
 
-          <h1 className="text-4xl font-black mb-4">Le Quiz Ymeal</h1>
+          <h1 className="text-4xl font-black mb-4">Mythes & fourchettes</h1>
 
           <p className="text-slate-700 mb-6 max-w-xl">
             Teste tes connaissances sur la cuisine et gagne
