@@ -1,62 +1,75 @@
+// app/api/register/route.ts
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const FILE = path.join(DATA_DIR, "registrations.json");
+const CAPACITY_PER_SESSION = 20;
 
-function ensureFile() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-  if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, "[]", "utf-8");
-}
-
-function ticket() {
-  // Ticket lisible: YM-482917
-  return `YM-${Math.floor(100000 + Math.random() * 900000)}`;
+function clean(v: unknown) {
+  return String(v ?? "").trim();
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const firstName = String(body.firstName ?? "").trim();
-    const lastName = String(body.lastName ?? "").trim();
-    const email = String(body.email ?? "").trim().toLowerCase();
-    const school = String(body.school ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
+    const firstName = clean(body.firstName);
+    const lastName = clean(body.lastName);
+    const email = clean(body.email).toLowerCase();
+    const session = clean(body.session); // "matin" | "aprem"
 
-    if (firstName.length < 2 || lastName.length < 2) {
-      return NextResponse.json({ error: "Prénom/nom invalides." }, { status: 400 });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Email invalide." }, { status: 400 });
+    if (!firstName || !lastName || !email || (session !== "matin" && session !== "aprem")) {
+      return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
     }
 
-    ensureFile();
-    const raw = fs.readFileSync(FILE, "utf-8");
-    const list = JSON.parse(raw) as any[];
+    const apiKey = process.env.BREVO_API_KEY;
+    const listMatin = process.env.BREVO_LIST_ID_MATIN;
+    const listAprem = process.env.BREVO_LIST_ID_APREM;
 
-    // Empêche doubles inscriptions email
-    if (list.some((x) => String(x.email).toLowerCase() === email)) {
-      return NextResponse.json({ error: "Cet email est déjà inscrit." }, { status: 409 });
+    if (!apiKey || !listMatin || !listAprem) {
+      return NextResponse.json({ error: "missing_env" }, { status: 500 });
     }
 
-    const item = {
-      id: crypto.randomUUID(),
-      ticket: ticket(),
-      firstName,
-      lastName,
-      email,
-      school,
-      phone,
-      createdAt: new Date().toISOString(),
-    };
+    const listId = session === "matin" ? listMatin : listAprem;
 
-    list.unshift(item);
-    fs.writeFileSync(FILE, JSON.stringify(list, null, 2), "utf-8");
+    // 1) Check taille de liste (cap 20)
+    const listRes = await fetch(`https://api.brevo.com/v3/contacts/lists/${listId}`, {
+      headers: { "api-key": apiKey, accept: "application/json" },
+      cache: "no-store",
+    });
 
-    return NextResponse.json({ ok: true, ticket: item.ticket });
-  } catch (e: any) {
-    return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
+    if (!listRes.ok) {
+      return NextResponse.json({ error: "brevo_list_fetch_failed" }, { status: 502 });
+    }
+
+    const listJson = await listRes.json();
+    const totalSubscribers = Number(listJson?.totalSubscribers ?? 0);
+
+    if (totalSubscribers >= CAPACITY_PER_SESSION) {
+      return NextResponse.json({ error: "session_full" }, { status: 409 });
+    }
+
+    // 2) Upsert contact dans la liste
+    const createRes = await fetch("https://api.brevo.com/v3/contacts", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        attributes: { FIRSTNAME: firstName, LASTNAME: lastName, SESSION: session },
+        listIds: [Number(listId)],
+        updateEnabled: true,
+      }),
+    });
+
+    if (!createRes.ok) {
+      const txt = await createRes.text();
+      return NextResponse.json({ error: "brevo_create_failed", details: txt }, { status: 502 });
+    }
+
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: "unknown_error" }, { status: 500 });
   }
 }

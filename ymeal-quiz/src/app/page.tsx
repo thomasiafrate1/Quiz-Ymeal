@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type FormState = { firstName: string; lastName: string; email: string; session: string };
 
@@ -17,6 +17,52 @@ export default function Page() {
 });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  type CapacityState =
+  | { capacity: number; matin: { taken: number; remaining: number }; aprem: { taken: number; remaining: number } }
+  | null;
+
+  const [capacity, setCapacity] = useState<CapacityState>(null);
+
+
+
+const submit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!canSubmit) return;
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+  if (data?.error === "session_full") {
+    setError("Cette session est complète (20 places). Choisis l'autre session.");
+    await refreshCapacity();
+    setLoading(false);
+    return;
+  }
+
+  setError(data?.error || "Une erreur est survenue.");
+  setLoading(false);
+  return;
+}
+
+    setDone(true);
+    await refreshCapacity();
+  } catch {
+    setError("Impossible de contacter le serveur.");
+  }
+
+  setLoading(false);
+};
 
   const canSubmit = useMemo(() => {
   return (
@@ -28,25 +74,40 @@ export default function Page() {
   );
 }, [form, loading]);
 
+
+const remainingLabel = useMemo(() => {
+  if (!capacity || !form.session) return null;
+  const r =
+    form.session === "matin"
+      ? capacity.matin.remaining
+      : form.session === "aprem"
+      ? capacity.aprem.remaining
+      : null;
+
+  if (r === null) return null;
+  return `${r} place${r > 1 ? "s" : ""} restante${r > 1 ? "s" : ""} / ${capacity.capacity}`;
+}, [capacity, form.session]);
+
   const onChange =
     (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((p) => ({ ...p, [key]: e.target.value }));
     };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+    const refreshCapacity = async () => {
+  try {
+    const r = await fetch("/api/capacity", { cache: "no-store" });
+    if (!r.ok) return;
+    const j = await r.json();
+    setCapacity(j);
+  } catch {}
+};
 
-    setLoading(true);
-    const res = await fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+useEffect(() => {
+  refreshCapacity();
+  const t = setInterval(refreshCapacity, 20000);
+  return () => clearInterval(t);
+}, []);
 
-    if (res.ok) setDone(true);
-    setLoading(false);
-  };
 
   return (
     <main className="bg-[#FFF7EC] text-slate-900">
@@ -268,7 +329,7 @@ export default function Page() {
 
         {/* Petit badge capacité */}
         <span className="text-xs font-semibold text-slate-600 bg-white/70 border border-slate-200 px-3 py-2 rounded-full">
-          20 places / session
+          {remainingLabel ?? "20 places / session"}
         </span>
       </div>
     </div>
@@ -279,6 +340,11 @@ export default function Page() {
       <div className="absolute -inset-1 rounded-[36px] bg-gradient-to-br from-[#FF7A00]/15 via-transparent to-green-500/10 blur-xl" />
 
       <div className="relative bg-white/90 backdrop-blur border border-slate-200 rounded-[32px] p-8 md:p-10 shadow-[0_12px_30px_rgba(15,23,42,0.10)]">
+        {error && (
+          <div className="bg-red-100 text-red-700 text-sm px-4 py-3 rounded-xl border border-red-200 mb-4">
+            {error}
+          </div>
+        )}
         {!done ? (
           <form onSubmit={submit} className="flex flex-col gap-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
