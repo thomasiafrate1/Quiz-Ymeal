@@ -128,7 +128,7 @@ useEffect(() => {
         {/* CONTENU */}
         <div className="flex flex-col items-center text-center relative z-10 px-6 ">
           
-          <img src="/logo-ymeal2.svg" className="w-[300px] max-w-[70vw] mt-50   mb-6" />
+          <img src="/logo-ymeal3.svg" className="w-[300px] max-w-[70vw] mt-50   mb-6" />
 
           <h1 className="text-4xl font-black mb-4">Mythes & fourchettes</h1>
 
