@@ -134,7 +134,7 @@ useEffect(() => {
 
           <p className="text-slate-700 mb-6 max-w-xl">
             Teste tes connaissances sur la cuisine et gagne
-            <span className="text-[#FF7A00] font-bold"> 100€</span>
+            <span className="text-[#FF7A00] font-bold"> ta récompense</span>
           </p>
 
           <a
@@ -203,7 +203,7 @@ useEffect(() => {
 
     <p className="mt-2 text-slate-600 leading-relaxed">
       Tente de gagner ! Nous avons prévu en tout 
-      <span className="font-black text-[#FF7A00]"> 100€ </span>
+      <span className="font-black text-[#FF7A00]"> pleins</span>
       de cadeaux pour les participants.
     </p>
 
@@ -272,7 +272,7 @@ useEffect(() => {
 
         <div className="relative bg-white/85  p-8">
           <p className="text-sm text-slate-500">Récompense</p>
-          <p className="font-black text-lg mt-1 text-[#FF7A00]">100€</p>
+          <p className="font-black text-lg mt-1 text-[#FF7A00]">pleins de cadeaux</p>
         </div>
       </div>
 
