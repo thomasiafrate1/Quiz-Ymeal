@@ -233,7 +233,7 @@ useEffect(() => {
 
         <div className="relative bg-white/85  p-8">
           <p className="text-sm text-slate-500">Lieu</p>
-          <p className="font-black text-lg mt-1">SOUK</p>
+          <p className="font-black text-lg mt-1">Salle 205</p>
         </div>
       </div>
 
@@ -246,7 +246,7 @@ useEffect(() => {
 
         <div className="relative bg-white/85  p-8">
           <p className="text-sm text-slate-500">Durée</p>
-          <p className="font-black text-lg mt-1">20 minutes</p>
+          <p className="font-black text-lg mt-1">30 minutes</p>
         </div>
       </div>
 
